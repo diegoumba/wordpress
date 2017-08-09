@@ -1,0 +1,6 @@
+---
+  - hosts: all
+    become: true
+    tasks:
+      - name: It is a test to connection
+        ping:

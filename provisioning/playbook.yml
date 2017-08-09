@@ -29,24 +29,19 @@
           - python-mysqldb
 
 # Hardening Mysql
-
   # Conditionals about password config in DB
       - name: Generate new root password
         command: openssl rand -hex 7 creates=/root/.my.cnf
         register: mysql_new_root_pass
-  # If /root/my.cnf doesn't exists
-      - debug: msg="New pass is {{mysql_new_root_pass.stdout}}"
-        when: mysql_new_root_pass.changed
-   # If /root/my.cnf already exists
-      - debug: msg="No change the root password"
-        when: not mysql_new_root_pass.changed
-        
       - name: Remove anonymous users
         mysql_user: name="" state=absent
-
+        when: mysql_new_root_pass.changed
       - name: Remove test database
         mysql_db: name=test state=absent
-
+        when: mysql_new_root_pass.changed
+      - name: Output new root password
+        debug: msg="New root password is {{mysql_new_root_pass}}"
+        when: mysql_new_root_pass.changed
       - name: Update root password
         mysql_user: name=root host={{item}} password={{mysql_new_root_pass.stdout}}
         with_items:
@@ -54,9 +49,7 @@
           - 127.0.0.1
           - ::1
           - localhost
-
-      - name: Output the new password
-        debug: msg="New root password is {{mysql_new_root_pass.stdout}}"
-
-      - name: Create and configuration my.cnf
+        when: mysql_new_root_pass.changed
+      - name: Create my.cnf
         template: src=templates/mysql/my.cnf dest=/root/.my.cnf
+        when: mysql_new_root_pass.changed

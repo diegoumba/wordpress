@@ -2,14 +2,50 @@
   - hosts: all
     become: true
     tasks:
-      - name: It is a test to connection
-        ping:
+# Installing PHP
+      - name: Install de ca-certificate package for install
+        apt: name=ca-certificates state=installed
       - name: Install the php repository for php7
-        apt_repository: repo='ppa:ondrej/php'
+        apt_repository: repo="ppa:ondrej/php"
       - name: Update the apt cache
         apt: update_cache=yes cache_valid_time=3600
       - name: Install php from ondrej repository
         apt: name=php state=installed
+      - name: Install other php packages
+        apt: name={{item}} state=installed
+        with_items:
+          - php
+          - php-fpm
+          - php-mysql
+          - php-xml
+      - name: Remove apache2 cause nginx
+        apt: name=apache2 state=removed
 
+# Installing Mysql
+      - name: Install MySQL
+        apt: name={{item}} state=installed
+        with_items:
+          - mysql-server-5.6
+          - python-mysqldb
 
-        
+# Hardening Mysql
+      - name: Generate new root password
+        command: openssl rand -hex 7
+        register: mysql_new_root_pass
+
+      - name: Remove anonymous users
+        mysql_user: name="" state=absent
+
+      - name: Remove test database
+        mysql_db: name=test state=absent
+
+      - name: Update root password
+        mysql_user: name=root host={{item}} password={{mysql_new_root_pass.stdout}}
+        with_items:
+          - "{{ansible_hostname}}"
+          - 127.0.0.1
+          - ::1
+          - localhost
+
+      - name: Output the new password
+        debug: msg="New root password is {{mysql_new_root_pass.stdout}}"

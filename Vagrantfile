@@ -13,5 +13,8 @@ Vagrant.configure(2) do |config|
     config.vm.network "private_network", type: "dhcp"
     vmwordpress.vm.hostname = "vmwordpress"
   end
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1024"
+  end
 
 end
